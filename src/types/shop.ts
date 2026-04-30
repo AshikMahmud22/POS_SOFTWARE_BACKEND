@@ -1,4 +1,5 @@
 export interface IShopEntry {
+  _id?: string;
   date: string;
   month: string;
   year: string;
@@ -11,4 +12,6 @@ export interface IShopEntry {
   truckFair: number;
   restTotalAmount: number;
   sign: string;
+  adminEmail: string; 
+  adminName: string;
 }

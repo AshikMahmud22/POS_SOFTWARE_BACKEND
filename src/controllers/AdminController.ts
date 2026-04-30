@@ -72,8 +72,13 @@ export const getAllAdmins = async (req: Request, res: Response) => {
 export const makeSuperAdmin = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    if (typeof id !== 'string' || !ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
     await db.collection('admins').updateOne(
-      { _id: new ObjectId(id as string) },
+      { _id: new ObjectId(id) },
       { $set: { role: 'superadmin' } }
     );
     res.status(200).json({ message: "Promoted to Super Admin" });
@@ -85,8 +90,13 @@ export const makeSuperAdmin = async (req: Request, res: Response) => {
 export const deleteAdmin = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    if (typeof id !== 'string' || !ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
     const result = await db.collection('admins').deleteOne({ 
-      _id: new ObjectId(id as string) 
+      _id: new ObjectId(id) 
     });
 
     if (result.deletedCount === 0) {

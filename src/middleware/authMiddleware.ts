@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import admin from '../config/firebaseAdmin';
+import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
-  user?: admin.auth.DecodedIdToken;
+  user?: any;
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const protect = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -16,8 +16,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   const token = authHeader.split(' ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
     next();
   } catch (error) {
     res.status(401).json({ success: false, message: "Invalid or expired token" });
