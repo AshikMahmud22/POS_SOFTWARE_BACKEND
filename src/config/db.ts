@@ -1,3 +1,4 @@
+
 import dotenv from "dotenv";
 import { Db, MongoClient } from "mongodb";
 
@@ -17,6 +18,11 @@ export const connectDB = async () => {
     console.error("❌ Connection Error:", err);
     process.exit(1);
   }
+};
+
+export const getDb = (): Db => {
+  if (!db) throw new Error("Database not connected yet!");
+  return db;
 };
 
 export { db };
