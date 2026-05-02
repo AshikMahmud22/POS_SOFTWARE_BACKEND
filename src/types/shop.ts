@@ -3,7 +3,7 @@ export interface IShopEntry {
   date: string;
   month: string;
   year: string;
-  cementDetails: string;
+  productDetails: string;
   quantity: number;
   productValue: number;
   totalCost: number;
