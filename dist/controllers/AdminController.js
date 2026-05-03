@@ -12,11 +12,15 @@ const createAdminAccount = async (req, res) => {
     try {
         const { firstName, lastName, email, phone, password } = req.body;
         if (!phone || String(phone).length !== 11) {
-            return res.status(400).json({ message: "Phone number must be exactly 11 digits" });
+            res.status(400).json({ message: "Phone number must be exactly 11 digits" });
+            return;
         }
-        const existingAdmin = await db_1.db.collection('admins').findOne({ email });
-        if (existingAdmin)
-            return res.status(400).json({ message: "Email already registered" });
+        const db = (0, db_1.getDb)();
+        const existingAdmin = await db.collection('admins').findOne({ email });
+        if (existingAdmin) {
+            res.status(400).json({ message: "Email already registered" });
+            return;
+        }
         const salt = await bcryptjs_1.default.genSalt(10);
         const hashedPassword = await bcryptjs_1.default.hash(password, salt);
         const newAdmin = {
@@ -28,7 +32,7 @@ const createAdminAccount = async (req, res) => {
             role: 'admin',
             createdAt: new Date()
         };
-        await db_1.db.collection('admins').insertOne(newAdmin);
+        await db.collection('admins').insertOne(newAdmin);
         res.status(201).json({ message: "Admin created successfully" });
     }
     catch (error) {
@@ -39,12 +43,17 @@ exports.createAdminAccount = createAdminAccount;
 const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const admin = await db_1.db.collection('admins').findOne({ email });
-        if (!admin)
-            return res.status(404).json({ message: "User not found" });
+        const db = (0, db_1.getDb)();
+        const admin = await db.collection('admins').findOne({ email });
+        if (!admin) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
         const isMatch = await bcryptjs_1.default.compare(password, admin.password);
-        if (!isMatch)
-            return res.status(400).json({ message: "Invalid credentials" });
+        if (!isMatch) {
+            res.status(400).json({ message: "Invalid credentials" });
+            return;
+        }
         const token = jsonwebtoken_1.default.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.status(200).json({
             token,
@@ -58,7 +67,8 @@ const loginAdmin = async (req, res) => {
 exports.loginAdmin = loginAdmin;
 const getAllAdmins = async (req, res) => {
     try {
-        const admins = await db_1.db.collection('admins').find({}, { projection: { password: 0 } }).toArray();
+        const db = (0, db_1.getDb)();
+        const admins = await db.collection('admins').find({}, { projection: { password: 0 } }).toArray();
         res.status(200).json(admins);
     }
     catch (error) {
@@ -70,9 +80,11 @@ const makeSuperAdmin = async (req, res) => {
     try {
         const { id } = req.params;
         if (typeof id !== 'string' || !mongodb_1.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid ID format" });
+            res.status(400).json({ message: "Invalid ID format" });
+            return;
         }
-        await db_1.db.collection('admins').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: { role: 'superadmin' } });
+        const db = (0, db_1.getDb)();
+        await db.collection('admins').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: { role: 'superadmin' } });
         res.status(200).json({ message: "Promoted to Super Admin" });
     }
     catch (error) {
@@ -84,13 +96,16 @@ const deleteAdmin = async (req, res) => {
     try {
         const { id } = req.params;
         if (typeof id !== 'string' || !mongodb_1.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid ID format" });
+            res.status(400).json({ message: "Invalid ID format" });
+            return;
         }
-        const result = await db_1.db.collection('admins').deleteOne({
+        const db = (0, db_1.getDb)();
+        const result = await db.collection('admins').deleteOne({
             _id: new mongodb_1.ObjectId(id)
         });
         if (result.deletedCount === 0) {
-            return res.status(404).json({ message: "Admin not found" });
+            res.status(404).json({ message: "Admin not found" });
+            return;
         }
         res.status(200).json({ message: "Admin removed successfully" });
     }
@@ -102,9 +117,12 @@ exports.deleteAdmin = deleteAdmin;
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const admin = await db_1.db.collection('admins').findOne({ email });
-        if (!admin)
-            return res.status(404).json({ message: "User not found" });
+        const db = (0, db_1.getDb)();
+        const admin = await db.collection('admins').findOne({ email });
+        if (!admin) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
         res.status(200).json({ message: "Password reset link sent to your email" });
     }
     catch (error) {

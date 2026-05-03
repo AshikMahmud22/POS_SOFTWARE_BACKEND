@@ -11,15 +11,9 @@ const uri = process.env.MONGO_URI || "";
 const client = new mongodb_1.MongoClient(uri);
 let db;
 const connectDB = async () => {
-    try {
-        await client.connect();
-        exports.db = db = client.db("shop_pos");
-        console.log("✅ MongoDB Connected!");
-    }
-    catch (err) {
-        console.error("❌ Connection Error:", err);
-        process.exit(1);
-    }
+    await client.connect();
+    exports.db = db = client.db("shop_pos");
+    console.log("MongoDB Connected!");
 };
 exports.connectDB = connectDB;
 const getDb = () => {

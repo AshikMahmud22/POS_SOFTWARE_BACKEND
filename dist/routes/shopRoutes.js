@@ -55,8 +55,10 @@ router.put('/update-entry/:id', authMiddleware_1.protect, async (req, res) => {
         const id = req.params.id;
         if (!mongodb_1.ObjectId.isValid(id))
             return res.status(400).json({ message: "Invalid ID" });
-        const { _id, ...updateData } = req.body;
-        await db_1.db.collection('entries').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: updateData });
+        const { _id, createdAt, status, ...updateData } = req.body;
+        const result = await db_1.db.collection('entries').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: updateData });
+        if (result.matchedCount === 0)
+            return res.status(404).json({ message: "Entry not found" });
         res.status(200).json({ success: true, message: "Updated" });
     }
     catch (error) {

@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -9,13 +8,17 @@ import dealerRoutes from "./routes/dealerRoutes";
 import profitRoutes from "./routes/profitRoutes";
 import deliveryCostRoutes from "./routes/deliveryRoutes";
 
-
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use("/api/shop", shopRoutes);
@@ -28,9 +31,20 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
-connectDB().then(() => {
-  app.locals.db = db;
-  app.listen(PORT, () => {
-    console.log(`🚀 Server: http://localhost:${PORT}`);
-  });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
+
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.locals.db = db;
+    app.listen(PORT, () => {
+      console.log(` Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    process.exit(1);
+  }
+};
+
+startServer();
