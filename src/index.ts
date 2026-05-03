@@ -6,6 +6,8 @@ import { connectDB, db } from "./config/db";
 import shopRoutes from "./routes/shopRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import dealerRoutes from "./routes/dealerRoutes";
+import profitRoutes from "./routes/profitRoutes";
+
 
 dotenv.config();
 
@@ -17,6 +19,7 @@ app.use(express.json());
 
 app.use("/api/shop", shopRoutes);
 app.use("/api/dealer", dealerRoutes);
+app.use("/api/profit", profitRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
