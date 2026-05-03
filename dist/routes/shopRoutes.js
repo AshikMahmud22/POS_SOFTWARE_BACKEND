@@ -5,7 +5,7 @@ const mongodb_1 = require("mongodb");
 const db_1 = require("../config/db");
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
-router.get('/all-entries', authMiddleware_1.protect, async (req, res) => {
+router.get('/get-entries', authMiddleware_1.protect, async (req, res) => {
     try {
         const year = req.query.year;
         const month = req.query.month;
@@ -18,43 +18,22 @@ router.get('/all-entries', authMiddleware_1.protect, async (req, res) => {
             .find(query)
             .sort({ date: -1, createdAt: -1 })
             .toArray();
-        res.status(200).json(entries);
+        res.status(200).json({ success: true, data: entries });
     }
     catch (error) {
-        res.status(500).json({ message: "Error fetching entries" });
+        res.status(500).json({ success: false, message: "Error fetching entries" });
     }
 });
-router.get('/available-years', authMiddleware_1.protect, async (req, res) => {
+router.get('/trashed-entries', authMiddleware_1.protect, async (req, res) => {
     try {
-        const filter = { status: { $ne: 'trashed' } };
-        const years = await db_1.db.collection('entries').distinct("year", filter);
-        const sortedYears = years.sort((a, b) => Number(b) - Number(a));
-        res.status(200).json(sortedYears.length > 0 ? sortedYears : ["2026"]);
+        const entries = await db_1.db.collection('entries')
+            .find({ status: 'trashed' })
+            .sort({ deletedAt: -1 })
+            .toArray();
+        res.status(200).json({ success: true, data: entries });
     }
     catch (error) {
-        res.status(500).json({ message: "Error fetching years" });
-    }
-});
-router.get('/available-months', authMiddleware_1.protect, async (req, res) => {
-    try {
-        const year = req.query.year;
-        if (!year) {
-            return res.status(400).json({ message: "Year is required" });
-        }
-        const filter = {
-            year: year,
-            status: { $ne: 'trashed' }
-        };
-        const months = await db_1.db.collection('entries').distinct("month", filter);
-        const monthOrder = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ];
-        const sortedMonths = months.sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
-        res.status(200).json(sortedMonths);
-    }
-    catch (error) {
-        res.status(500).json({ message: "Error fetching months" });
+        res.status(500).json({ success: false, message: "Error fetching trash" });
     }
 });
 router.post('/add-entry', authMiddleware_1.protect, async (req, res) => {
@@ -65,35 +44,59 @@ router.post('/add-entry', authMiddleware_1.protect, async (req, res) => {
             status: 'active'
         };
         const result = await db_1.db.collection('entries').insertOne(newEntry);
-        res.status(201).json({ _id: result.insertedId, ...newEntry });
+        res.status(201).json({ success: true, _id: result.insertedId, ...newEntry });
     }
     catch (error) {
-        res.status(500).json({ message: "Error saving entry" });
+        res.status(500).json({ success: false, message: "Error saving entry" });
     }
 });
 router.put('/update-entry/:id', authMiddleware_1.protect, async (req, res) => {
     try {
-        const id = req.params.id; // ✅ fix here
+        const id = req.params.id;
         if (!mongodb_1.ObjectId.isValid(id))
             return res.status(400).json({ message: "Invalid ID" });
         const { _id, ...updateData } = req.body;
         await db_1.db.collection('entries').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: updateData });
-        res.status(200).json({ message: "Updated" });
+        res.status(200).json({ success: true, message: "Updated" });
     }
     catch (error) {
-        res.status(500).json({ message: "Update failed" });
+        res.status(500).json({ success: false, message: "Update failed" });
     }
 });
 router.post('/move-to-trash/:id', authMiddleware_1.protect, async (req, res) => {
     try {
-        const id = req.params.id; // ✅ fix here
+        const id = req.params.id;
         if (!mongodb_1.ObjectId.isValid(id))
             return res.status(400).json({ message: "Invalid ID" });
         await db_1.db.collection('entries').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: { status: 'trashed', deletedAt: new Date() } });
-        res.status(200).json({ message: "Moved to trash" });
+        res.status(200).json({ success: true, message: "Moved to trash" });
     }
     catch (error) {
-        res.status(500).json({ message: "Action failed" });
+        res.status(500).json({ success: false, message: "Action failed" });
+    }
+});
+router.post('/restore-entry/:id', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (!mongodb_1.ObjectId.isValid(id))
+            return res.status(400).json({ message: "Invalid ID" });
+        await db_1.db.collection('entries').updateOne({ _id: new mongodb_1.ObjectId(id) }, { $set: { status: 'active' }, $unset: { deletedAt: "" } });
+        res.status(200).json({ success: true, message: "Restored" });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: "Restore failed" });
+    }
+});
+router.delete('/permanent-delete/:id', authMiddleware_1.protect, async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (!mongodb_1.ObjectId.isValid(id))
+            return res.status(400).json({ message: "Invalid ID" });
+        await db_1.db.collection('entries').deleteOne({ _id: new mongodb_1.ObjectId(id) });
+        res.status(200).json({ success: true, message: "Permanently deleted" });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: "Delete failed" });
     }
 });
 exports.default = router;
