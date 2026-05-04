@@ -5,12 +5,13 @@ import {
   getDeliveryCostEntries,
   updateDeliveryCostEntry,
 } from "../controllers/deliveryController";
+import { protect } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
-router.post("/add", addDeliveryCostEntry);
-router.get("/entries", getDeliveryCostEntries);
-router.put("/update/:id", updateDeliveryCostEntry);
-router.delete("/delete/:id", deleteDeliveryCostEntry);
+router.post("/add",protect, addDeliveryCostEntry);
+router.get("/entries", protect, getDeliveryCostEntries);
+router.put("/update/:id", protect, updateDeliveryCostEntry);
+router.delete("/delete/:id", protect, deleteDeliveryCostEntry);
 
 export default router;

@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { createAdminAccount, deleteAdmin, forgotPassword, getAllAdmins, loginAdmin, makeSuperAdmin } from '../controllers/AdminController';
+import { protect } from '../middleware/authMiddleware';
+
 const router = Router();
 
 router.post('/login', loginAdmin);
-router.post('/create', createAdminAccount);
-router.get('/all', getAllAdmins);
-router.patch('/make-super/:id', makeSuperAdmin);
-router.delete('/delete/:id', deleteAdmin);
 router.post('/forgot-password', forgotPassword);
+router.post('/create', protect, createAdminAccount);
+router.get('/all', protect, getAllAdmins);
+router.patch('/make-super/:id', protect, makeSuperAdmin);
+router.delete('/delete/:id', protect, deleteAdmin);
 
 export default router;
