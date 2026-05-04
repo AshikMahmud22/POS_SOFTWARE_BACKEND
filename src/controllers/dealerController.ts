@@ -21,7 +21,9 @@ export const addDealerEntry = async (req: Request, res: Response) => {
       createdAt: new Date(),
     };
     await collection.insertOne(newEntry);
-    res.status(201).json({ success: true, message: "Entry added successfully" });
+    res
+      .status(201)
+      .json({ success: true, message: "Entry added successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -33,7 +35,13 @@ export const getDealerEntries = async (req: Request, res: Response) => {
     if (!db) throw new Error("Database connection not established");
 
     const collection = getDealerCollection(db);
-    const { page = 1, limit = 10, search = "", month = "", year = "" } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      month = "",
+      year = "",
+    } = req.query;
 
     const query: any = {};
     if (month) query.month = month;
@@ -57,15 +65,32 @@ export const getDealerEntries = async (req: Request, res: Response) => {
     const total = await collection.countDocuments(query);
 
     const distinctYears = await collection.distinct("year");
-    const availableYears = (Array.isArray(distinctYears) ? distinctYears : [])
-      .sort((a: string, b: string) => Number(b) - Number(a));
+    const availableYears = (
+      Array.isArray(distinctYears) ? distinctYears : []
+    ).sort((a: string, b: string) => Number(b) - Number(a));
 
     let availableMonths: string[] = [];
     if (year) {
-      const monthOrder = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const monthOrder = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
       const distinctMonths = await collection.distinct("month", { year });
-      availableMonths = (Array.isArray(distinctMonths) ? distinctMonths : [])
-        .sort((a: string, b: string) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+      availableMonths = (
+        Array.isArray(distinctMonths) ? distinctMonths : []
+      ).sort(
+        (a: string, b: string) => monthOrder.indexOf(a) - monthOrder.indexOf(b),
+      );
     }
 
     res.status(200).json({
@@ -95,7 +120,7 @@ export const updateDealerEntry = async (req: Request, res: Response) => {
 
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: updateData }
+      { $set: updateData },
     );
     if (result.matchedCount === 0) {
       return res.status(404).json({ success: false, message: "Not found" });
