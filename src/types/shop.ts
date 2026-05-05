@@ -3,7 +3,9 @@ export interface IShopEntry {
   date: string;
   month: string;
   year: string;
-  productDetails: string;
+  // productDetails: string;
+  category: string;
+  subcategory: string;
   quantity: number;
   productValue: number;
   totalCost: number;
@@ -12,6 +14,14 @@ export interface IShopEntry {
   truckFair: number;
   restTotalAmount: number;
   sign: string;
-  adminEmail: string; 
+  adminEmail: string;
   adminName: string;
+  status?: "active" | "trashed";
+  createdAt?: Date;
+  deletedAt?: Date;
 }
+
+export const monthOrder = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];

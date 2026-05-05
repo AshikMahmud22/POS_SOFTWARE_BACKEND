@@ -1,194 +1,23 @@
-import { Router, Request, Response } from "express";
-import { ObjectId } from "mongodb";
-import { db } from "../config/db";
+import { Router } from "express";
 import { protect } from "../middleware/authMiddleware";
+import {
+  getEntries,
+  getTrashedEntries,
+  addEntry,
+  updateEntry,
+  moveToTrash,
+  restoreEntry,
+  permanentDelete,
+} from "../controllers/shopController";
 
 const router = Router();
 
-const monthOrder = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-router.get(
-  "/get-entries",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const year = req.query.year as string;
-      const month = req.query.month as string;
-
-      const query: Record<string, unknown> = { status: { $ne: "trashed" } };
-      if (year) query.year = year;
-      if (month) query.month = month;
-
-      const entries = await db
-        .collection("entries")
-        .find(query)
-        .sort({ date: -1, createdAt: -1 })
-        .toArray();
-
-      const distinctYears = await db
-        .collection("entries")
-        .distinct("year", { status: { $ne: "trashed" } });
-      const availableYears = distinctYears.sort(
-        (a, b) => Number(b) - Number(a),
-      );
-
-      let availableMonths: string[] = [];
-      if (year) {
-        const distinctMonths = await db
-          .collection("entries")
-          .distinct("month", { year, status: { $ne: "trashed" } });
-        availableMonths = distinctMonths.sort(
-          (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b),
-        );
-      }
-
-      res.status(200).json({
-        success: true,
-        data: entries,
-        availableYears,
-        availableMonths,
-      });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ success: false, message: "Error fetching entries" });
-    }
-  },
-);
-
-router.get(
-  "/trashed-entries",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const entries = await db
-        .collection("entries")
-        .find({ status: "trashed" })
-        .sort({ deletedAt: -1 })
-        .toArray();
-      res.status(200).json({ success: true, data: entries });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Error fetching trash" });
-    }
-  },
-);
-
-router.post(
-  "/add-entry",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const newEntry = {
-        ...req.body,
-        createdAt: new Date(),
-        status: "active",
-      };
-      const result = await db.collection("entries").insertOne(newEntry);
-      res
-        .status(201)
-        .json({ success: true, _id: result.insertedId, ...newEntry });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Error saving entry" });
-    }
-  },
-);
-
-router.put(
-  "/update-entry/:id",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const id = req.params.id as string;
-      if (!ObjectId.isValid(id)) {
-        res.status(400).json({ message: "Invalid ID" });
-        return;
-      }
-      const { _id, ...updateData } = req.body;
-      await db
-        .collection("entries")
-        .updateOne({ _id: new ObjectId(id) }, { $set: updateData });
-      res.status(200).json({ success: true, message: "Updated" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Update failed" });
-    }
-  },
-);
-
-router.post(
-  "/move-to-trash/:id",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const id = req.params.id as string;
-      if (!ObjectId.isValid(id)) {
-        res.status(400).json({ message: "Invalid ID" });
-        return;
-      }
-      await db
-        .collection("entries")
-        .updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status: "trashed", deletedAt: new Date() } },
-        );
-      res.status(200).json({ success: true, message: "Moved to trash" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Action failed" });
-    }
-  },
-);
-
-router.post(
-  "/restore-entry/:id",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const id = req.params.id as string;
-      if (!ObjectId.isValid(id)) {
-        res.status(400).json({ message: "Invalid ID" });
-        return;
-      }
-      await db
-        .collection("entries")
-        .updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status: "active" }, $unset: { deletedAt: "" } },
-        );
-      res.status(200).json({ success: true, message: "Restored" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Restore failed" });
-    }
-  },
-);
-
-router.delete(
-  "/permanent-delete/:id",
-  protect,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const id = req.params.id as string;
-      if (!ObjectId.isValid(id)) {
-        res.status(400).json({ message: "Invalid ID" });
-        return;
-      }
-      await db.collection("entries").deleteOne({ _id: new ObjectId(id) });
-      res.status(200).json({ success: true, message: "Permanently deleted" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Delete failed" });
-    }
-  },
-);
+router.get("/get-entries", protect, getEntries);
+router.get("/trashed-entries", protect, getTrashedEntries);
+router.post("/add-entry", protect, addEntry);
+router.put("/update-entry/:id", protect, updateEntry);
+router.post("/move-to-trash/:id", protect, moveToTrash);
+router.post("/restore-entry/:id", protect, restoreEntry);
+router.delete("/permanent-delete/:id", protect, permanentDelete);
 
 export default router;
