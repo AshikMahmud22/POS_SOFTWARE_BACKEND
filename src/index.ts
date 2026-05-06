@@ -7,6 +7,8 @@ import adminRoutes from "./routes/adminRoutes";
 import companyRoutes from "./routes/companyRoutes";
 import profitRoutes from "./routes/profitRoutes";
 import deliveryCostRoutes from "./routes/deliveryRoutes";
+import partyRoutes from "./routes/partyRoutes";
+
 
 dotenv.config();
 
@@ -40,6 +42,7 @@ app.use("/api/companies", companyRoutes);
 app.use("/api/profit", profitRoutes);
 app.use("/api/delivery-cost", deliveryCostRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/party", partyRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
