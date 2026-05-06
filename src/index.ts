@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { connectDB, db } from "./config/db";
 import shopRoutes from "./routes/shopRoutes";
 import adminRoutes from "./routes/adminRoutes";
-import dealerRoutes from "./routes/dealerRoutes";
+import companyRoutes from "./routes/companyRoutes";
 import profitRoutes from "./routes/profitRoutes";
 import deliveryCostRoutes from "./routes/deliveryRoutes";
 
@@ -30,13 +30,13 @@ app.use(
     },
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
 
 app.use("/api/shop", shopRoutes);
-app.use("/api/dealer", dealerRoutes);
+app.use("/api/companies", companyRoutes);
 app.use("/api/profit", profitRoutes);
 app.use("/api/delivery-cost", deliveryCostRoutes);
 app.use("/api/admin", adminRoutes);
