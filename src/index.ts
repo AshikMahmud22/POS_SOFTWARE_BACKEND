@@ -5,9 +5,9 @@ import { connectDB, db } from "./config/db";
 import shopRoutes from "./routes/shopRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import companyRoutes from "./routes/companyRoutes";
-import profitRoutes from "./routes/profitRoutes";
-import deliveryCostRoutes from "./routes/deliveryRoutes";
 import partyRoutes from "./routes/partyRoutes";
+import collectionRoutes from "./routes/collectionRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 
 
 dotenv.config();
@@ -39,10 +39,10 @@ app.use(express.json());
 
 app.use("/api/shop", shopRoutes);
 app.use("/api/companies", companyRoutes);
-app.use("/api/profit", profitRoutes);
-app.use("/api/delivery-cost", deliveryCostRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/party", partyRoutes);
+app.use("/api/collection", collectionRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running!");

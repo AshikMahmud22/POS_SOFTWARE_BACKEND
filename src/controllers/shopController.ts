@@ -17,7 +17,7 @@ export const getEntries = async (req: Request, res: Response): Promise<void> => 
     if (category) query.category = category;
 
     const entries = await db
-      .collection("entries")
+      .collection("shop")
       .find(query)
       .sort({ date: -1, createdAt: -1 })
       .toArray();

@@ -26,5 +26,5 @@ export interface ICompanyEntry {
 }
 
 export const getCompanyCollection = (db: Db): Collection<ICompanyEntry> => {
-  return db.collection<ICompanyEntry>("company_entries");
+  return db.collection<ICompanyEntry>("company");
 };
