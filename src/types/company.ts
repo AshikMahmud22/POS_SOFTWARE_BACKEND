@@ -16,8 +16,8 @@ export interface ICompanyEntry {
     commissionReason: string;
   };
   advDoQty: number;
+  advDoAmount: number;
   doLifting: number;
-  doLiftingSource: "dhaka" | "ghat";
   excessDoQty: number;
   previousDo: number;
   adminName: string;

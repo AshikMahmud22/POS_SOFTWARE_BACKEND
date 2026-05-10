@@ -45,7 +45,7 @@ app.use("/api/collection", collectionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Server is running!");
+  res.send("POS Server is running!");
 });
 
 app.get("/health", (req, res) => {
