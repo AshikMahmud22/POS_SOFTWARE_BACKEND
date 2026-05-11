@@ -28,6 +28,8 @@ export const addCollection = async (req: Request, res: Response) => {
       totalCost: Number(body.totalCost),
       truckFair: Number(body.truckFair),
       previousDue: Number(body.previousDue),
+      cashCollection: Number(body.cashCollection),
+      totalDeposit: Number(body.totalDeposit),
       partyBalance: Number(body.partyBalance),
       createdAt: new Date(),
     };
@@ -55,6 +57,8 @@ export const updateCollection = async (req: Request, res: Response) => {
       totalCost: Number(body.totalCost),
       truckFair: Number(body.truckFair),
       previousDue: Number(body.previousDue),
+      cashCollection: Number(body.cashCollection),
+      totalDeposit: Number(body.totalDeposit),
       partyBalance: Number(body.partyBalance),
     };
     const result = await db.collection("collection").updateOne(

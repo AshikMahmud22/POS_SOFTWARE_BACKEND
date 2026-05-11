@@ -13,6 +13,8 @@ export interface ICollection {
   truckFairType: "party" | "self";
   truckFair: number;
   previousDue: number;
+  cashCollection: number;
+  totalDeposit: number;
   partyBalance: number;
   adminName?: string;
   adminEmail?: string;

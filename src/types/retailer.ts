@@ -18,6 +18,7 @@ export interface IRetailerEntry {
   totalCost: number;
   previousDue: number;
   deposit: number;
+  truckFairType: "self" | "company";
   truckFair: number;
   restTotalAmount: number;
   sign: string;
