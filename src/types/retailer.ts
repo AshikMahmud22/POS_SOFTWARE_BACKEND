@@ -1,13 +1,20 @@
-export interface IShopEntry {
+export interface IRetailerEntry {
   _id?: string;
   date: string;
   month: string;
   year: string;
-  // productDetails: string;
+  retailerName: string;
+  proprietorName: string;
+  address: string;
+  mobile: string;
+  companyId: string;
+  companyName: string;
   category: string;
   subcategory: string;
+  rateType: "factory" | "ghat";
+  doFactory: number;
+  doGhat: number;
   quantity: number;
-  productValue: number;
   totalCost: number;
   previousDue: number;
   deposit: number;

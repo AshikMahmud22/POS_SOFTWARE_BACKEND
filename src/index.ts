@@ -2,12 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB, db } from "./config/db";
-import shopRoutes from "./routes/shopRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import companyRoutes from "./routes/companyRoutes";
 import partyRoutes from "./routes/partyRoutes";
 import collectionRoutes from "./routes/collectionRoutes";
 import dashboardRoutes from "./routes/dashboardRoutes";
+import retailerRoutes from "./routes/retailerRoutes";
 
 
 dotenv.config();
@@ -37,7 +37,7 @@ app.use(
 
 app.use(express.json());
 
-app.use("/api/shop", shopRoutes);
+app.use("/api/retailer", retailerRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/party", partyRoutes);

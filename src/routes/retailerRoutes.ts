@@ -8,7 +8,7 @@ import {
   moveToTrash,
   restoreEntry,
   permanentDelete,
-} from "../controllers/shopController";
+} from "../controllers/retailerController";
 
 const router = Router();
 
