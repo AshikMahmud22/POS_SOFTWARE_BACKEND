@@ -7,6 +7,7 @@ export interface ICompanyEntry {
   month: string;
   category: string;
   subcategory: string;
+  doSource: "factory" | "ghat";
   dhakaDo: { bag: number; rate: number; amount: number };
   ghatDo: { bag: number; rate: number; amount: number };
   bankDeposit: {
@@ -20,6 +21,8 @@ export interface ICompanyEntry {
   doLifting: number;
   excessDoQty: number;
   previousDo: number;
+  previousDue: number;
+  dueAmount: number;
   adminName: string;
   createdAt: Date;
   updatedAt?: Date;

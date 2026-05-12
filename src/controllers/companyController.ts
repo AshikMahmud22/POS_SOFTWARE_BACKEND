@@ -2,50 +2,59 @@ import { Request, Response } from "express";
 import { ObjectId } from "mongodb";
 import { getCompanyCollection } from "../types/company";
 
+const computeEntry = (data: Record<string, any>) => {
+  const dhakaBag = Number(data.dhakaDo?.bag || 0);
+  const dhakaRate = Number(data.dhakaDo?.rate || 0);
+  const ghatBag = Number(data.ghatDo?.bag || 0);
+  const ghatRate = Number(data.ghatDo?.rate || 0);
+  const cash = Number(data.bankDeposit?.cash || 0);
+  const commission = Number(data.bankDeposit?.commission || 0);
+  const doLifting = Number(data.doLifting || 0);
+  const doSource: "factory" | "ghat" =
+    data.doSource === "ghat" ? "ghat" : "factory";
+  const previousDue = Number(data.previousDue || 0);
+
+  const advDoQty = dhakaBag + ghatBag;
+  const advDoAmount = dhakaBag * dhakaRate + ghatBag * ghatRate;
+  const totalDeposit = cash + commission;
+  const excessDoQty = advDoQty - doLifting;
+  const totalAmount =
+    doSource === "factory" ? doLifting * dhakaRate : doLifting * ghatRate;
+  const dueAmount = totalAmount - totalDeposit + previousDue;
+
+  return {
+    doSource,
+    dhakaDo: { bag: dhakaBag, rate: dhakaRate, amount: dhakaBag * dhakaRate },
+    ghatDo: { bag: ghatBag, rate: ghatRate, amount: ghatBag * ghatRate },
+    bankDeposit: {
+      commissionReason: data.bankDeposit?.commissionReason || "",
+      cash,
+      commission,
+      totalDeposit,
+    },
+    advDoQty,
+    advDoAmount,
+    doLifting,
+    excessDoQty,
+    previousDue,
+    dueAmount,
+  };
+};
+
 export const addCompanyEntry = async (req: Request, res: Response) => {
   try {
     const db = req.app.locals.db;
     const collection = getCompanyCollection(db);
     const data = req.body;
-
-    const dhakaBag = Number(data.dhakaDo?.bag || 0);
-    const dhakaRate = Number(data.dhakaDo?.rate || 0);
-    const ghatBag = Number(data.ghatDo?.bag || 0);
-    const ghatRate = Number(data.ghatDo?.rate || 0);
-    const cash = Number(data.bankDeposit?.cash || 0);
-    const commission = Number(data.bankDeposit?.commission || 0);
-    const previousDo = Number(data.previousDo || 0);
-    const doLifting = Number(data.doLifting || 0);
-    const advDoQty = dhakaBag + ghatBag;
-    const advDoAmount = (dhakaBag * dhakaRate) + (ghatBag * ghatRate);
-    const totalDeposit = cash + commission;
-    const excessDoQty = advDoQty + previousDo - doLifting;
+    const computed = computeEntry(data);
 
     const newEntry = {
       ...data,
+      ...computed,
       year: String(data.year),
-      dhakaDo: {
-        bag: dhakaBag,
-        rate: dhakaRate,
-        amount: dhakaBag * dhakaRate,
-      },
-      ghatDo: {
-        bag: ghatBag,
-        rate: ghatRate,
-        amount: ghatBag * ghatRate,
-      },
-      bankDeposit: {
-        commissionReason: data.bankDeposit?.commissionReason || "",
-        cash,
-        commission,
-        totalDeposit,
-      },
-      advDoQty,
-      advDoAmount,
-      doLifting,
-      excessDoQty,
-      previousDo,
-      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
+      createdAt: data.createdAt
+        ? new Date(data.createdAt as string)
+        : new Date(),
     };
 
     delete newEntry.doLiftingSource;
@@ -94,12 +103,22 @@ export const getCompanyEntries = async (req: Request, res: Response) => {
     let availableMonths: string[] = [];
     if (year) {
       const monthOrder = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
       const distinctMonths = await collection.distinct("month", { year });
       availableMonths = distinctMonths.sort(
-        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b),
       );
     }
 
@@ -123,45 +142,15 @@ export const updateCompanyEntry = async (req: Request, res: Response) => {
     const collection = getCompanyCollection(db);
     const id = req.params.id as string;
     const data = req.body;
-
-    const dhakaBag = Number(data.dhakaDo?.bag || 0);
-    const dhakaRate = Number(data.dhakaDo?.rate || 0);
-    const ghatBag = Number(data.ghatDo?.bag || 0);
-    const ghatRate = Number(data.ghatDo?.rate || 0);
-    const cash = Number(data.bankDeposit?.cash || 0);
-    const commission = Number(data.bankDeposit?.commission || 0);
-    const previousDo = Number(data.previousDo || 0);
-    const doLifting = Number(data.doLifting || 0);
-    const advDoQty = dhakaBag + ghatBag;
-    const advDoAmount = (dhakaBag * dhakaRate) + (ghatBag * ghatRate);
-    const totalDeposit = cash + commission;
-    const excessDoQty = advDoQty + previousDo - doLifting;
+    const computed = computeEntry(data);
 
     const updateData = {
       ...data,
+      ...computed,
       year: String(data.year),
-      dhakaDo: {
-        bag: dhakaBag,
-        rate: dhakaRate,
-        amount: dhakaBag * dhakaRate,
-      },
-      ghatDo: {
-        bag: ghatBag,
-        rate: ghatRate,
-        amount: ghatBag * ghatRate,
-      },
-      bankDeposit: {
-        commissionReason: data.bankDeposit?.commissionReason || "",
-        cash,
-        commission,
-        totalDeposit,
-      },
-      advDoQty,
-      advDoAmount,
-      doLifting,
-      excessDoQty,
-      previousDo,
-      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
+      createdAt: data.createdAt
+        ? new Date(data.createdAt as string)
+        : new Date(),
       updatedAt: new Date(),
     };
 
@@ -182,6 +171,46 @@ export const deleteCompanyEntry = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     await collection.deleteOne({ _id: new ObjectId(id) });
     res.status(200).json({ success: true, message: "Entry deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getPreviousDue = async (req: Request, res: Response) => {
+  try {
+    const db = req.app.locals.db;
+    const collection = getCompanyCollection(db);
+
+    const companyName = req.query.companyName
+      ? String(req.query.companyName)
+      : "";
+    const excludeId = req.query.excludeId ? String(req.query.excludeId) : "";
+
+    if (!companyName) {
+      res
+        .status(400)
+        .json({ success: false, message: "companyName is required" });
+      return;
+    }
+
+    const query: Record<string, unknown> = {
+      companyName: { $regex: `^${companyName}$`, $options: "i" },
+    };
+
+    if (excludeId) {
+      query._id = { $ne: new ObjectId(excludeId) };
+    }
+
+    const result = await collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .toArray();
+
+    const previousDue = result.length > 0 ? result[0].dueAmount : 0;
+    const previousDoBags = result.length > 0 ? result[0].excessDoQty : 0;
+
+    res.status(200).json({ success: true, previousDue, previousDoBags });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
