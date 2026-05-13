@@ -10,17 +10,18 @@ const computeEntry = (data: Record<string, any>) => {
   const cash = Number(data.bankDeposit?.cash || 0);
   const commission = Number(data.bankDeposit?.commission || 0);
   const doLifting = Number(data.doLifting || 0);
-  const doSource: "factory" | "ghat" =
-    data.doSource === "ghat" ? "ghat" : "factory";
+  const doSource: "factory" | "ghat" = data.doSource === "ghat" ? "ghat" : "factory";
   const previousDue = Number(data.previousDue || 0);
+  const previousDo = Number(data.previousDo || 0);
+  const previousDoRate = Number(data.previousDoRate || 0);
+  const previousDoAmount = previousDo * previousDoRate;
 
-  const advDoQty = dhakaBag + ghatBag;
-  const advDoAmount = dhakaBag * dhakaRate + ghatBag * ghatRate;
+  const advDoQty = dhakaBag + ghatBag + previousDo;
+  const advDoAmount = dhakaBag * dhakaRate + ghatBag * ghatRate + previousDoAmount;
   const totalDeposit = cash + commission;
   const excessDoQty = advDoQty - doLifting;
-  const totalAmount =
-    doSource === "factory" ? doLifting * dhakaRate : doLifting * ghatRate;
-  const dueAmount = totalAmount - totalDeposit + previousDue;
+  const rawDue = advDoAmount - totalDeposit + previousDue;
+  const dueAmount = rawDue < 0 ? 0 : rawDue;
 
   return {
     doSource,
@@ -36,6 +37,9 @@ const computeEntry = (data: Record<string, any>) => {
     advDoAmount,
     doLifting,
     excessDoQty,
+    previousDo,
+    previousDoRate,
+    previousDoAmount,
     previousDue,
     dueAmount,
   };
@@ -52,9 +56,7 @@ export const addCompanyEntry = async (req: Request, res: Response) => {
       ...data,
       ...computed,
       year: String(data.year),
-      createdAt: data.createdAt
-        ? new Date(data.createdAt as string)
-        : new Date(),
+      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
     };
 
     delete newEntry.doLiftingSource;
@@ -103,22 +105,12 @@ export const getCompanyEntries = async (req: Request, res: Response) => {
     let availableMonths: string[] = [];
     if (year) {
       const monthOrder = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
       ];
       const distinctMonths = await collection.distinct("month", { year });
       availableMonths = distinctMonths.sort(
-        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b),
+        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
       );
     }
 
@@ -148,9 +140,7 @@ export const updateCompanyEntry = async (req: Request, res: Response) => {
       ...data,
       ...computed,
       year: String(data.year),
-      createdAt: data.createdAt
-        ? new Date(data.createdAt as string)
-        : new Date(),
+      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
       updatedAt: new Date(),
     };
 
@@ -181,15 +171,11 @@ export const getPreviousDue = async (req: Request, res: Response) => {
     const db = req.app.locals.db;
     const collection = getCompanyCollection(db);
 
-    const companyName = req.query.companyName
-      ? String(req.query.companyName)
-      : "";
+    const companyName = req.query.companyName ? String(req.query.companyName) : "";
     const excludeId = req.query.excludeId ? String(req.query.excludeId) : "";
 
     if (!companyName) {
-      res
-        .status(400)
-        .json({ success: false, message: "companyName is required" });
+      res.status(400).json({ success: false, message: "companyName is required" });
       return;
     }
 
@@ -211,6 +197,22 @@ export const getPreviousDue = async (req: Request, res: Response) => {
     const previousDoBags = result.length > 0 ? result[0].excessDoQty : 0;
 
     res.status(200).json({ success: true, previousDue, previousDoBags });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getCompanyEntry = async (req: Request, res: Response) => {
+  try {
+    const db = req.app.locals.db;
+    const collection = getCompanyCollection(db);
+    const id = req.params.id as string;
+    const entry = await collection.findOne({ _id: new ObjectId(id) });
+    if (!entry) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+    res.status(200).json({ success: true, data: entry });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }

@@ -21,6 +21,8 @@ export interface ICompanyEntry {
   doLifting: number;
   excessDoQty: number;
   previousDo: number;
+  previousDoRate: number;
+  previousDoAmount: number;
   previousDue: number;
   dueAmount: number;
   adminName: string;
