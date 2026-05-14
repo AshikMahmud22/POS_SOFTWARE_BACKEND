@@ -148,3 +148,21 @@ export const permanentDelete = async (req: Request, res: Response): Promise<void
     res.status(500).json({ success: false, message: "Delete failed" });
   }
 };
+
+export const getEntry = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = toId(req.params.id);
+    if (!ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: "Invalid ID" });
+      return;
+    }
+    const entry = await db.collection("retailer").findOne({ _id: new ObjectId(id) });
+    if (!entry) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+    res.status(200).json({ success: true, data: entry });
+  } catch {
+    res.status(500).json({ success: false, message: "Error fetching entry" });
+  }
+};

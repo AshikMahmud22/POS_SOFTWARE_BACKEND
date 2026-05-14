@@ -9,8 +9,9 @@ export interface ICollection {
   partyName: string;
   bag: number;
   rate: number;
+  rateType?: "factory" | "ghat";
   totalCost: number;
-  truckFairType: "party" | "self";
+  truckFairType: "dealer" | "retailer";
   truckFair: number;
   previousDue: number;
   cashCollection: number;
