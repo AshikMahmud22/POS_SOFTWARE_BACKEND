@@ -14,6 +14,9 @@ export interface IRetailerEntry {
   rateType: "factory" | "ghat";
   doFactory: number;
   doGhat: number;
+  doFactoryBags: number;
+  doGhatBags: number;
+  ratePrice: number;
   quantity: number;
   totalCost: number;
   previousDue: number;
@@ -30,6 +33,6 @@ export interface IRetailerEntry {
 }
 
 export const monthOrder = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];

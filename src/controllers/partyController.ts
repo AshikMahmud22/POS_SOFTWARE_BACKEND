@@ -16,14 +16,13 @@ export const getParties = async (req: Request, res: Response) => {
 export const addParty = async (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { name, location, retailerName, proprietorName, address, mobile }: IParty = req.body;
-    if (!name || !location) {
-      res.status(400).json({ success: false, message: "Name and location are required" });
+    const { name, retailerName, proprietorName, address, mobile }: IParty = req.body;
+    if (!name) {
+      res.status(400).json({ success: false, message: "Name is required" });
       return;
     }
     const newParty: IParty = {
       name,
-      location,
       retailerName: retailerName || "",
       proprietorName: proprietorName || "",
       address: address || "",
@@ -45,13 +44,12 @@ export const updateParty = async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: "Invalid ID" });
       return;
     }
-    const { name, location, retailerName, proprietorName, address, mobile }: Partial<IParty> = req.body;
+    const { name, retailerName, proprietorName, address, mobile }: Partial<IParty> = req.body;
     const result = await db.collection("parties").updateOne(
       { _id: new ObjectId(id) },
       {
         $set: {
           name,
-          location,
           retailerName: retailerName || "",
           proprietorName: proprietorName || "",
           address: address || "",

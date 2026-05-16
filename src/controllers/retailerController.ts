@@ -5,7 +5,84 @@ import { monthOrder } from "../types/retailer";
 
 const toId = (param: unknown): string => String(param);
 
-export const getEntries = async (req: Request, res: Response): Promise<void> => {
+const deductBags = async (
+  companyId: string,
+  rateType: "factory" | "ghat",
+  quantity: number,
+) => {
+  const company = await db
+    .collection("company")
+    .findOne({ _id: new ObjectId(companyId) });
+  if (!company) return;
+
+  const dhakaBag = Number(company.dhakaDo?.bag || 0);
+  const ghatBag = Number(company.ghatDo?.bag || 0);
+  const previousDo = Number(company.previousDo || 0);
+
+  let newDhakaBag = dhakaBag;
+  let newGhatBag = ghatBag;
+
+  if (rateType === "factory") {
+    newDhakaBag = dhakaBag - quantity;
+  } else {
+    newGhatBag = ghatBag - quantity;
+  }
+
+  const newAdvancedDo = previousDo + newDhakaBag + newGhatBag;
+
+  await db.collection("company").updateOne(
+    { _id: new ObjectId(companyId) },
+    {
+      $set: {
+        "dhakaDo.bag": newDhakaBag,
+        "ghatDo.bag": newGhatBag,
+        advancedDo: newAdvancedDo,
+      },
+    },
+  );
+};
+
+const restoreBags = async (
+  companyId: string,
+  rateType: "factory" | "ghat",
+  quantity: number,
+) => {
+  const company = await db
+    .collection("company")
+    .findOne({ _id: new ObjectId(companyId) });
+  if (!company) return;
+
+  const dhakaBag = Number(company.dhakaDo?.bag || 0);
+  const ghatBag = Number(company.ghatDo?.bag || 0);
+  const previousDo = Number(company.previousDo || 0);
+
+  let newDhakaBag = dhakaBag;
+  let newGhatBag = ghatBag;
+
+  if (rateType === "factory") {
+    newDhakaBag = dhakaBag + quantity;
+  } else {
+    newGhatBag = ghatBag + quantity;
+  }
+
+  const newAdvancedDo = previousDo + newDhakaBag + newGhatBag;
+
+  await db.collection("company").updateOne(
+    { _id: new ObjectId(companyId) },
+    {
+      $set: {
+        "dhakaDo.bag": newDhakaBag,
+        "ghatDo.bag": newGhatBag,
+        advancedDo: newAdvancedDo,
+      },
+    },
+  );
+};
+
+export const getEntries = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const year = String(req.query.year || "");
     const month = String(req.query.month || "");
@@ -33,7 +110,7 @@ export const getEntries = async (req: Request, res: Response): Promise<void> => 
         .collection("retailer")
         .distinct("month", { year, status: { $ne: "trashed" } });
       availableMonths = distinctMonths.sort(
-        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+        (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b),
       );
     }
 
@@ -53,7 +130,10 @@ export const getEntries = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-export const getTrashedEntries = async (req: Request, res: Response): Promise<void> => {
+export const getTrashedEntries = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const entries = await db
       .collection("retailer")
@@ -66,76 +146,252 @@ export const getTrashedEntries = async (req: Request, res: Response): Promise<vo
   }
 };
 
-export const addEntry = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const newEntry = {
-      ...req.body,
-      createdAt: new Date(),
-      status: "active",
-    };
-    const result = await db.collection("retailer").insertOne(newEntry);
-    res.status(201).json({ success: true, _id: result.insertedId, ...newEntry });
-  } catch {
-    res.status(500).json({ success: false, message: "Error saving entry" });
-  }
-};
-
-export const updateEntry = async (req: Request, res: Response): Promise<void> => {
+export const getEntry = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = toId(req.params.id);
     if (!ObjectId.isValid(id)) {
       res.status(400).json({ success: false, message: "Invalid ID" });
       return;
     }
-    const { _id, ...updateData } = req.body;
+    const entry = await db
+      .collection("retailer")
+      .findOne({ _id: new ObjectId(id) });
+    if (!entry) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+    res.status(200).json({ success: true, data: entry });
+  } catch {
+    res.status(500).json({ success: false, message: "Error fetching entry" });
+  }
+};
+
+export const addEntry = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const body = req.body;
+    const companyId = body.companyId;
+    const rateType: "factory" | "ghat" =
+      body.rateType === "ghat" ? "ghat" : "factory";
+    const quantity = Number(body.quantity) || 0;
+
+    if (!companyId || !ObjectId.isValid(companyId)) {
+      res.status(400).json({ success: false, message: "Invalid companyId" });
+      return;
+    }
+
+    const company = await db
+      .collection("company")
+      .findOne({ _id: new ObjectId(companyId) });
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+
+    const availableBag =
+      rateType === "factory"
+        ? Number(company.dhakaDo?.bag || 0)
+        : Number(company.ghatDo?.bag || 0);
+
+    if (quantity > availableBag) {
+      res.status(400).json({
+        success: false,
+        message: `Only ${availableBag} bags available for ${rateType}`,
+      });
+      return;
+    }
+
+    const newEntry = {
+      ...body,
+      quantity,
+      createdAt: new Date(),
+      status: "active",
+    };
+
+    const result = await db.collection("retailer").insertOne(newEntry);
+    await deductBags(companyId, rateType, quantity);
+
+    res.status(201).json({ success: true, _id: result.insertedId });
+  } catch {
+    res.status(500).json({ success: false, message: "Error saving entry" });
+  }
+};
+
+export const updateEntry = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const id = toId(req.params.id);
+    if (!ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: "Invalid ID" });
+      return;
+    }
+
+    const existing = await db
+      .collection("retailer")
+      .findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+
+    const body = req.body;
+    const newQuantity = Number(body.quantity) || 0;
+    const newRateType: "factory" | "ghat" =
+      body.rateType === "ghat" ? "ghat" : "factory";
+    const newCompanyId = body.companyId;
+
+    const oldQuantity = Number(existing.quantity) || 0;
+    const oldRateType: "factory" | "ghat" =
+      existing.rateType === "ghat" ? "ghat" : "factory";
+    const oldCompanyId = String(existing.companyId);
+
+    await restoreBags(oldCompanyId, oldRateType, oldQuantity);
+
+    const company = await db
+      .collection("company")
+      .findOne({ _id: new ObjectId(newCompanyId) });
+    if (!company) {
+      await deductBags(oldCompanyId, oldRateType, oldQuantity);
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+
+    const availableBag =
+      newRateType === "factory"
+        ? Number(company.dhakaDo?.bag || 0)
+        : Number(company.ghatDo?.bag || 0);
+
+    if (newQuantity > availableBag) {
+      await deductBags(oldCompanyId, oldRateType, oldQuantity);
+      res.status(400).json({
+        success: false,
+        message: `Only ${availableBag} bags available for ${newRateType}`,
+      });
+      return;
+    }
+
+    const { _id, ...updateData } = body;
     await db
       .collection("retailer")
-      .updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+      .updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...updateData, updatedAt: new Date() } },
+      );
+
+    await deductBags(newCompanyId, newRateType, newQuantity);
+
     res.status(200).json({ success: true, message: "Updated successfully" });
   } catch {
     res.status(500).json({ success: false, message: "Update failed" });
   }
 };
 
-export const moveToTrash = async (req: Request, res: Response): Promise<void> => {
+export const moveToTrash = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = toId(req.params.id);
     if (!ObjectId.isValid(id)) {
       res.status(400).json({ success: false, message: "Invalid ID" });
       return;
     }
+
+    const existing = await db
+      .collection("retailer")
+      .findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+
+    const quantity = Number(existing.quantity) || 0;
+    const rateType: "factory" | "ghat" =
+      existing.rateType === "ghat" ? "ghat" : "factory";
+    const companyId = String(existing.companyId);
+
     await db
       .collection("retailer")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $set: { status: "trashed", deletedAt: new Date() } }
+        { $set: { status: "trashed", deletedAt: new Date() } },
       );
+
+    if (companyId && ObjectId.isValid(companyId)) {
+      await restoreBags(companyId, rateType, quantity);
+    }
+
     res.status(200).json({ success: true, message: "Moved to trash" });
   } catch {
     res.status(500).json({ success: false, message: "Action failed" });
   }
 };
 
-export const restoreEntry = async (req: Request, res: Response): Promise<void> => {
+export const restoreEntry = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = toId(req.params.id);
     if (!ObjectId.isValid(id)) {
       res.status(400).json({ success: false, message: "Invalid ID" });
       return;
     }
+
+    const existing = await db
+      .collection("retailer")
+      .findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Entry not found" });
+      return;
+    }
+
+    const quantity = Number(existing.quantity) || 0;
+    const rateType: "factory" | "ghat" =
+      existing.rateType === "ghat" ? "ghat" : "factory";
+    const companyId = String(existing.companyId);
+
+    const company = await db
+      .collection("company")
+      .findOne({ _id: new ObjectId(companyId) });
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+
+    const availableBag =
+      rateType === "factory"
+        ? Number(company.dhakaDo?.bag || 0)
+        : Number(company.ghatDo?.bag || 0);
+
+    if (quantity > availableBag) {
+      res.status(400).json({
+        success: false,
+        message: `Cannot restore. Only ${availableBag} bags available for ${rateType}`,
+      });
+      return;
+    }
+
     await db
       .collection("retailer")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $set: { status: "active" }, $unset: { deletedAt: "" } }
+        { $set: { status: "active" }, $unset: { deletedAt: "" } },
       );
+
+    await deductBags(companyId, rateType, quantity);
+
     res.status(200).json({ success: true, message: "Restored successfully" });
   } catch {
     res.status(500).json({ success: false, message: "Restore failed" });
   }
 };
 
-export const permanentDelete = async (req: Request, res: Response): Promise<void> => {
+export const permanentDelete = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = toId(req.params.id);
     if (!ObjectId.isValid(id)) {
@@ -146,23 +402,5 @@ export const permanentDelete = async (req: Request, res: Response): Promise<void
     res.status(200).json({ success: true, message: "Permanently deleted" });
   } catch {
     res.status(500).json({ success: false, message: "Delete failed" });
-  }
-};
-
-export const getEntry = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const id = toId(req.params.id);
-    if (!ObjectId.isValid(id)) {
-      res.status(400).json({ success: false, message: "Invalid ID" });
-      return;
-    }
-    const entry = await db.collection("retailer").findOne({ _id: new ObjectId(id) });
-    if (!entry) {
-      res.status(404).json({ success: false, message: "Entry not found" });
-      return;
-    }
-    res.status(200).json({ success: true, data: entry });
-  } catch {
-    res.status(500).json({ success: false, message: "Error fetching entry" });
   }
 };
