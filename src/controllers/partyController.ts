@@ -16,7 +16,7 @@ export const getParties = async (req: Request, res: Response) => {
 export const addParty = async (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const { name, location }: IParty = req.body;
+    const { name, location, retailerName, proprietorName, address, mobile }: IParty = req.body;
     if (!name || !location) {
       res.status(400).json({ success: false, message: "Name and location are required" });
       return;
@@ -24,6 +24,10 @@ export const addParty = async (req: Request, res: Response) => {
     const newParty: IParty = {
       name,
       location,
+      retailerName: retailerName || "",
+      proprietorName: proprietorName || "",
+      address: address || "",
+      mobile: mobile || "",
       createdAt: new Date(),
     };
     const result = await db.collection("parties").insertOne(newParty);
@@ -41,10 +45,19 @@ export const updateParty = async (req: Request, res: Response) => {
       res.status(400).json({ success: false, message: "Invalid ID" });
       return;
     }
-    const { name, location }: Partial<IParty> = req.body;
+    const { name, location, retailerName, proprietorName, address, mobile }: Partial<IParty> = req.body;
     const result = await db.collection("parties").updateOne(
       { _id: new ObjectId(id) },
-      { $set: { name, location } }
+      {
+        $set: {
+          name,
+          location,
+          retailerName: retailerName || "",
+          proprietorName: proprietorName || "",
+          address: address || "",
+          mobile: mobile || "",
+        },
+      }
     );
     if (result.modifiedCount === 0) {
       res.status(404).json({ success: false, message: "Party not found" });
